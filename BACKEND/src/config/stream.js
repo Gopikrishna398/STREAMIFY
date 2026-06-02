@@ -1,0 +1,30 @@
+import  {StreamChat}  from "stream-chat";
+import { env } from "./env.js";
+
+const apiKey = env.streamApiKey;
+const apiSecret = env.streamApiSecret;
+
+if (!apiKey || !apiSecret) {
+  console.error("Stream API key or Secret is missing");
+}
+
+const streamClient = StreamChat.getInstance(apiKey, apiSecret);
+
+export const upsertStreamUser = async (userData) => {
+  try {
+    await streamClient.upsertUsers([userData]);
+    return userData;
+  } catch (error) {
+    console.error("Error upserting Stream user:", error);
+  }
+};
+
+export const generateStreamToken = (userId) => {
+  try {
+    // ensure userId is a string
+    const userIdStr = userId.toString();
+    return streamClient.createToken(userIdStr);
+  } catch (error) {
+    console.error("Error generating Stream token:", error);
+  }
+};
