@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { StreamChat } from "stream-chat";
 import toast from "react-hot-toast";
 import useAuthUser from "../hooks/useAuthUser";
-import { getStreamToken } from "../lib/api";
+import { getMissedCallCount, getStreamToken } from "../lib/api";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
@@ -13,6 +13,12 @@ const MessageNotifier = () => {
   const authUserId = authUser?._id?.toString();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Store location pathname in a ref to prevent effect from reconnecting on route changes.
+  const pathRef = useRef(location.pathname);
+  useEffect(() => {
+    pathRef.current = location.pathname;
+  }, [location.pathname]);
 
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken", authUserId],
@@ -29,9 +35,10 @@ const MessageNotifier = () => {
     let isMounted = true;
 
     const connectForNotifications = async () => {
-      client = new StreamChat(STREAM_API_KEY);
+      // Re-use connection singleton
+      client = StreamChat.getInstance(STREAM_API_KEY);
 
-      await client.connectUser(
+      const response = await client.connectUser(
         {
           id: authUserId,
           name: authUser.fullName,
@@ -42,11 +49,48 @@ const MessageNotifier = () => {
 
       if (!isMounted) return;
 
+      // Notify user about messages/calls missed while offline (only once per session)
+      const sessionKey = `streamify_welcomed_${authUserId}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        try {
+          const callData = await getMissedCallCount();
+          const missedCallsCount = callData?.count || 0;
+          const unreadMessagesCount = response?.me?.total_unread_count || 0;
+
+          if (unreadMessagesCount > 0 || missedCallsCount > 0) {
+            toast(
+              (t) => (
+                <div className="flex flex-col gap-1 text-left">
+                  <span className="font-semibold text-primary">Welcome back!</span>
+                  <span className="text-sm">
+                    While you were away, you received:
+                    {unreadMessagesCount > 0 && (
+                      <span className="block font-medium mt-1">• {unreadMessagesCount} unread message(s)</span>
+                    )}
+                    {missedCallsCount > 0 && (
+                      <span className="block font-medium">• {missedCallsCount} missed call(s)</span>
+                    )}
+                  </span>
+                </div>
+              ),
+              {
+                duration: 8000,
+                icon: "🔔",
+              }
+            );
+            sessionStorage.setItem(sessionKey, "true");
+          }
+        } catch (err) {
+          console.error("Error fetching offline alerts:", err);
+        }
+      }
+
       unsubscribe = client.on("message.new", (event) => {
         const senderId = event.user?.id;
         if (!senderId || senderId === authUserId) return;
 
-        const currentChatId = location.pathname.match(/^\/chat\/([^/]+)/)?.[1];
+        const currentPath = pathRef.current;
+        const currentChatId = currentPath.match(/^\/chat\/([^/]+)/)?.[1];
         const currentChannelId =
           currentChatId && [authUserId, currentChatId].sort().join("-");
 
@@ -57,6 +101,7 @@ const MessageNotifier = () => {
         const channelMembers = Object.keys(event.channel?.state?.members || {});
         const otherMemberId = channelMembers.find((memberId) => memberId !== authUserId) || senderId;
 
+        // Show standard message popup notification
         toast(
           (t) => (
             <button
@@ -82,9 +127,9 @@ const MessageNotifier = () => {
     return () => {
       isMounted = false;
       unsubscribe?.unsubscribe?.();
-      client?.disconnectUser();
+      // Keep background connection connected for notifications. Do not call client?.disconnectUser().
     };
-  }, [authUser, authUserId, location.pathname, navigate, tokenData]);
+  }, [authUser, authUserId, tokenData, navigate]);
 
   return null;
 };

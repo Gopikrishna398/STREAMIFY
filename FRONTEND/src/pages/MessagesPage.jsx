@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { StreamChat } from "stream-chat";
-import { MessageSquareIcon } from "lucide-react";
+import { MessageSquareIcon, Plus } from "lucide-react";
 import useAuthUser from "../hooks/useAuthUser";
 import { getStreamToken } from "../lib/api";
 import ChatLoader from "../components/ChatLoader";
@@ -49,7 +49,7 @@ const MessagesPage = () => {
     const loadMessages = async () => {
       try {
         setLoadError("");
-        client = new StreamChat(STREAM_API_KEY);
+        client = StreamChat.getInstance(STREAM_API_KEY);
 
         await client.connectUser(
           {
@@ -81,14 +81,14 @@ const MessagesPage = () => {
 
     return () => {
       isMounted = false;
-      client?.disconnectUser();
+      // Do not disconnect client on page unmount to speed up transitions and keep notifications active.
     };
   }, [authUser, authUserId, tokenData]);
 
   if (isLoading) return <ChatLoader />;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 relative min-h-[calc(100vh-4rem)]">
       <div className="container mx-auto max-w-4xl space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Messages</h1>
@@ -148,6 +148,15 @@ const MessagesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button for New Chat */}
+      <Link
+        to="/new-chat"
+        className="fixed bottom-8 right-8 btn btn-primary btn-circle shadow-xl z-40 hover:scale-110 active:scale-95 transition-all w-14 h-14"
+        title="Start a new chat"
+      >
+        <Plus className="size-8 text-primary-content" />
+      </Link>
     </div>
   );
 };

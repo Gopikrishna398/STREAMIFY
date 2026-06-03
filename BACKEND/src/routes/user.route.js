@@ -9,6 +9,7 @@ import {
   getRecommendedUsers,
   sendFriendRequest,
   updateProfile,
+  getUserById,
 } from "../controllers/user.controller.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { profileUpdateSchema } from "../validators/auth.validator.js";
@@ -28,5 +29,7 @@ router.get("/friend-requests", getFriendRequests);
 router.get("/notification-count", getNotificationCount);
 router.get("/outgoing-friend-requests", getOutgoingFriendReqs);
 router.patch("/profile", validate(profileUpdateSchema), updateProfile);
+
+router.get("/:id", getUserById);
 
 export default router;

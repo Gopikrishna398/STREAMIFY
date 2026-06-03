@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { signIn } from "../lib/api";
+import { signup } from "../lib/api";
 
-const useSignIn = () => {
+const useSignup = () => {
   const queryClient = useQueryClient();
 
   const { mutate, isPending, error } = useMutation({
-    mutationFn: signIn,
+    mutationFn: signup,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
   });
 
-  return { isPending, error, signInMutation: mutate };
+  return { isPending, error, signupMutation: mutate };
 };
-export default useSignIn;
+export default useSignup;

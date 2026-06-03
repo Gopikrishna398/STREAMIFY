@@ -1,7 +1,7 @@
 import { axiosInstance } from "./axios";
 
-export const signIn = async (signInData) => {
-  const response = await axiosInstance.post("/auth/signup", signInData);
+export const signup = async (signupData) => {
+  const response = await axiosInstance.post("/auth/signup", signupData);
   return response.data;
 };
 
@@ -91,5 +91,10 @@ export async function markCallsSeen() {
 
 export async function createCallRecord(callData) {
   const response = await axiosInstance.post("/chat/calls", callData);
+  return response.data;
+}
+
+export async function getUserById(userId) {
+  const response = await axiosInstance.get(`/users/${userId}`);
   return response.data;
 }

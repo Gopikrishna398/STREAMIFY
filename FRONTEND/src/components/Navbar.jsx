@@ -6,7 +6,6 @@ import ThemeSelector from "./ThemeSelector";
 import useLogout from "../hooks/useLogout";
 import { getMissedCallCount, getNotificationCount } from "../lib/api";
 import IconBadge from "./IconBadge";
-import ProfilePictureEditor from "./ProfilePictureEditor";
 import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
 
 const Navbar = () => {
@@ -42,7 +41,7 @@ const Navbar = () => {
           {/* LOGO - ONLY IN THE CHAT PAGE */}
           {isChatPage && (
             <div className="pl-5">
-              <Link to="/" className="flex items-center gap-2.5">
+              <Link to="/profile" className="flex items-center gap-2.5">
                 <ShipWheelIcon className="size-9 text-primary" />
                 <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
                   Streamify
@@ -80,7 +79,7 @@ const Navbar = () => {
           {/* TODO */}
           <ThemeSelector />
 
-          <ProfilePictureEditor user={authUser} />
+          {/* Profile Picture Editor removed per request */}
 
           {/* Logout button */}
           <button className="btn btn-ghost btn-circle" onClick={logoutMutation}>

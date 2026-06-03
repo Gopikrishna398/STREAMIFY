@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation } from "react-router-dom";
 import useAuthUser from "../hooks/useAuthUser";
 import {
   BellIcon,
@@ -9,16 +9,29 @@ import {
   UsersIcon,
 } from "lucide-react";
 import UserAvatar from "./UserAvatar";
+import IconBadge from "./IconBadge";
+import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
+import { useQuery } from "@tanstack/react-query";
+import { getMissedCallCount } from "../lib/api";
 
 const Sidebar = () => {
   const { authUser } = useAuthUser();
   const location = useLocation();
   const currentPath = location.pathname;
 
+  const unreadMessageCount = useUnreadMessageCount();
+  
+  const { data: missedCalls } = useQuery({
+    queryKey: ["missedCallCount", authUser?._id],
+    queryFn: getMissedCallCount,
+    enabled: !!authUser?._id,
+    refetchInterval: 30000,
+  });
+
   return (
     <aside className="w-64 bg-base-200 border-r border-base-300 hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-5 border-b border-base-300">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/profile" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <ShipWheelIcon className="size-9 text-primary" />
           <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
             Streamify
@@ -53,7 +66,9 @@ const Sidebar = () => {
             currentPath === "/messages" || currentPath.startsWith("/chat") ? "btn-active" : ""
           }`}
         >
-          <MessageSquareIcon className="size-5 text-base-content opacity-70" />
+          <IconBadge count={unreadMessageCount}>
+            <MessageSquareIcon className="size-5 text-base-content opacity-70" />
+          </IconBadge>
           <span>Messages</span>
         </Link>
 
@@ -63,7 +78,9 @@ const Sidebar = () => {
             currentPath === "/calls" || currentPath.startsWith("/call") ? "btn-active" : ""
           }`}
         >
-          <PhoneCallIcon className="size-5 text-base-content opacity-70" />
+          <IconBadge count={missedCalls?.count || 0}>
+            <PhoneCallIcon className="size-5 text-base-content opacity-70" />
+          </IconBadge>
           <span>Call History</span>
         </Link>
 
@@ -80,7 +97,7 @@ const Sidebar = () => {
 
       {/* USER PROFILE SECTION */}
       <div className="p-4 border-t border-base-300 mt-auto">
-        <div className="flex items-center gap-3">
+        <Link to="/profile" className="flex items-center gap-3 hover:bg-base-300 p-2 rounded-lg transition-colors cursor-pointer -mx-2">
           <UserAvatar src={authUser?.profilePic} name={authUser?.fullName} className="w-10 rounded-full" />
           <div className="flex-1">
             <p className="font-semibold text-sm">{authUser?.fullName}</p>
@@ -89,7 +106,7 @@ const Sidebar = () => {
               Online
             </p>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   );

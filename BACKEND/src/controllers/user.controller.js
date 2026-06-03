@@ -183,7 +183,21 @@ export async function updateProfile(req, res) {
 
     res.status(200).json({ success: true, user: updatedUser });
   } catch (error) {
-    console.log("Error in updateProfile controller", error.message);
+    console.error("Error in updateProfile controller", error);
+    const statusCode = error?.statusCode === 403 ? 502 : error?.statusCode || 500;
+    res.status(statusCode).json({ message: error?.message || "Internal Server Error" });
+  }
+}
+
+export async function getUserById(req, res) {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in getUserById controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
