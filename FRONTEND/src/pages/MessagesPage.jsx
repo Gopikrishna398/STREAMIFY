@@ -51,14 +51,19 @@ const MessagesPage = () => {
         setLoadError("");
         client = StreamChat.getInstance(STREAM_API_KEY);
 
-        await client.connectUser(
-          {
-            id: authUserId,
-            name: authUser.fullName,
-            image: authUser.profilePic,
-          },
-          tokenData.token
-        );
+        if (client.userID !== authUserId) {
+          if (client.userID) {
+            await client.disconnectUser();
+          }
+          await client.connectUser(
+            {
+              id: authUserId,
+              name: authUser.fullName,
+              image: authUser.profilePic,
+            },
+            tokenData.token
+          );
+        }
 
         const recentChannels = await client.queryChannels(
           { type: "messaging", members: { $in: [authUserId] } },

@@ -22,6 +22,8 @@ export const onboardingSchema = z.object({
     learningLanguage: z.string().trim().min(1, "Learning language is required").max(40),
     location: z.string().trim().min(1, "Location is required").max(120),
     nativeLanguage: z.string().trim().min(1, "Native language is required").max(40),
+    gender: z.enum(["Male", "Female", "Other"], { required_error: "Gender is required" }),
+    profilePic: z.string().optional(),
   }),
 });
 

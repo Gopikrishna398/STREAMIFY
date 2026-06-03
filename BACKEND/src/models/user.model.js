@@ -1,7 +1,6 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
-
 const userSchema = new mongoose.Schema({
     fullName : {
         type:String,
@@ -19,7 +18,6 @@ const userSchema = new mongoose.Schema({
     },
     bio : {
         type : String ,
-        
     },
     profilePic : {
         type : String ,
@@ -46,14 +44,23 @@ const userSchema = new mongoose.Schema({
          type : Boolean,
         default : false
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationOtp: {
+        type: String,
+        default: ""
+    },
+    verificationOtpExpiresAt: {
+        type: Date
+    },
     friends :[
        { 
         type : mongoose.Schema.Types.ObjectId,
         ref : 'User'
-        
        }
     ],
-
 },
 { timestamps : true}
 )
@@ -77,7 +84,5 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 const User = mongoose.model("User" , userSchema)
-
-
 
 export default User;

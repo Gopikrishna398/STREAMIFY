@@ -12,6 +12,7 @@ import MessagesPage from "./pages/MessagesPage";
 import NewChatPage from "./pages/NewChatPage";
 import CallsPage from "./pages/CallsPage";
 import ProfilePage from "./pages/ProfilePage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 import Layout from "./components/LayOut";
 
 import { useQuery } from "@tanstack/react-query";
@@ -31,12 +32,14 @@ const App = () => {
     });
 
     const authUser = authData?.user
+    const isVerified = authUser?.isVerified;
     const isOnboarded = authUser?.isOnboarded;
 
     if (isLoading) return <PageLoader />;
 
     const renderProtectedPage = (page, { showSidebar = true } = {}) => {
         if (!authUser) return <Navigate to="/login" replace />;
+        if (!isVerified) return <Navigate to="/verify-email" replace />;
         if (!isOnboarded) return <Navigate to="/onboarding" replace />;
 
         return <Layout showSidebar={showSidebar}>{page}</Layout>;
@@ -59,17 +62,18 @@ const App = () => {
 
             <Route path="/call/:id" element={renderProtectedPage(<CallPage />, { showSidebar: false })} />
 
-            <Route path="/login" element={!authUser ? <LoginPage/>  : <Navigate to={isOnboarded ? "/" : "/onboarding"} />} />
+            <Route path="/login" element={!authUser ? <LoginPage/>  : <Navigate to={isVerified ? (isOnboarded ? "/" : "/onboarding") : "/verify-email"} />} />
 
             <Route path="/signin" element={<Navigate to="/signup" replace />} />
-            <Route path="/signup" element={!authUser ? <SignupPage/> : <Navigate to={isOnboarded ? "/" : "/onboarding"} replace />} />
+            <Route path="/signup" element={!authUser ? <SignupPage/> : <Navigate to={isVerified ? (isOnboarded ? "/" : "/onboarding") : "/verify-email"} replace />} />
 
             <Route path="/onboard" element={<Navigate to="/onboarding" replace />} />
-            <Route path="/onboarding" element={authUser ? (isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage/>) : <Navigate to="/login" replace />} />
+            <Route path="/onboarding" element={authUser ? (!isVerified ? <Navigate to="/verify-email" replace /> : (isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage/>)) : <Navigate to="/login" replace />} />
+            <Route path="/verify-email" element={authUser ? (isVerified ? <Navigate to="/" replace /> : <VerifyEmailPage />) : <Navigate to="/login" replace />} />
 
             <Route path="/chat/:id" element={renderProtectedPage(<ChatPage />, { showSidebar: false })} />
             <Route path="/notifications" element={renderProtectedPage(<NotificationsPage />)} />
-            <Route path="*" element={<Navigate to={authUser ? "/" : "/login"} />} />
+            <Route path="*" element={<Navigate to={authUser ? (isVerified ? "/" : "/verify-email") : "/login"} />} />
             
         </Routes>
 

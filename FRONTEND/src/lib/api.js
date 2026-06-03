@@ -98,3 +98,13 @@ export async function getUserById(userId) {
   const response = await axiosInstance.get(`/users/${userId}`);
   return response.data;
 }
+
+export async function verifyEmail(otp) {
+  const response = await axiosInstance.post("/auth/verify-email", { otp });
+  return response.data;
+}
+
+export async function resendOtp() {
+  const response = await axiosInstance.post("/auth/resend-otp");
+  return response.data;
+}

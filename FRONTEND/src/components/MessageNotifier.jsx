@@ -38,14 +38,22 @@ const MessageNotifier = () => {
       // Re-use connection singleton
       client = StreamChat.getInstance(STREAM_API_KEY);
 
-      const response = await client.connectUser(
-        {
-          id: authUserId,
-          name: authUser.fullName,
-          image: authUser.profilePic,
-        },
-        tokenData.token
-      );
+      let response;
+      if (client.userID !== authUserId) {
+        if (client.userID) {
+          await client.disconnectUser();
+        }
+        response = await client.connectUser(
+          {
+            id: authUserId,
+            name: authUser.fullName,
+            image: authUser.profilePic,
+          },
+          tokenData.token
+        );
+      } else {
+        response = { me: client.me };
+      }
 
       if (!isMounted) return;
 

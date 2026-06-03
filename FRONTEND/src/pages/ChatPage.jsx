@@ -200,14 +200,19 @@ const ChatPage = () => {
         // Do not call connectUser if we've already unmounted
         if (!isMounted) return;
 
-        await client.connectUser(
-          {
-            id: authUserId,
-            name: authUser.fullName || "User",
-            image: authUser.profilePic,
-          },
-          tokenData.token
-        );
+        if (client.userID !== authUserId) {
+          if (client.userID) {
+            await client.disconnectUser();
+          }
+          await client.connectUser(
+            {
+              id: authUserId,
+              name: authUser.fullName || "User",
+              image: authUser.profilePic,
+            },
+            tokenData.token
+          );
+        }
 
         if (!isMounted) return;
 

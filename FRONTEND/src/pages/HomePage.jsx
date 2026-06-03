@@ -6,7 +6,7 @@ import {
   getUserFriends,
   sendFriendRequest,
 } from "../lib/api";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { CheckCircleIcon, MapPinIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 
 import { capitialize } from "../lib/utils";
@@ -34,7 +34,7 @@ const HomePage = () => {
     queryFn: getOutgoingFriendReqs,
   });
 
-  const { mutate: sendRequestMutation, isPending } = useMutation({
+  const { mutate: sendRequestMutation, isPending, variables } = useMutation({
     mutationFn: sendFriendRequest,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["outgoingFriendReqs"] }),
   });
@@ -95,6 +95,7 @@ const HomePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedUsers.map((user) => {
                 const hasRequestBeenSent = outgoingRequestsIds.has(user._id);
+                const isThisUserPending = isPending && variables === user._id;
 
                 return (
                   <div
@@ -136,9 +137,14 @@ const HomePage = () => {
                           hasRequestBeenSent ? "btn-disabled" : "btn-primary"
                         } `}
                         onClick={() => sendRequestMutation(user._id)}
-                        disabled={hasRequestBeenSent || isPending}
+                        disabled={hasRequestBeenSent || isThisUserPending}
                       >
-                        {hasRequestBeenSent ? (
+                        {isThisUserPending ? (
+                          <>
+                            <span className="loading loading-spinner loading-xs mr-2" />
+                            Sending...
+                          </>
+                        ) : hasRequestBeenSent ? (
                           <>
                             <CheckCircleIcon className="size-4 mr-2" />
                             Request Sent
