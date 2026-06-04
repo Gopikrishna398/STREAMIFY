@@ -7,8 +7,13 @@ import cors from 'cors'
 import authRoute from "./routes/auth.route.js"
 import userRoute from "./routes/user.route.js"
 import chatRoute from "./routes/chat.route.js"
+import dns from "dns";
 
-const app = express()
+// Force IPv4 first to prevent ENETUNREACH errors on hosts without IPv6 support
+dns.setDefaultResultOrder("ipv4first");
+
+const app = express();
+app.set("trust proxy", 1); // Trust reverse proxy headers (Railway/Render)
 const PORT = process.env.PORT || 5001;
 const allowedOrigins = (process.env.CLIENT_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
   .split(",")
