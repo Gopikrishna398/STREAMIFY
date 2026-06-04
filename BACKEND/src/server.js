@@ -12,7 +12,7 @@ const app = express()
 const PORT = process.env.PORT || 5001;
 const allowedOrigins = (process.env.CLIENT_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
 const apiLimiter = rateLimit({
