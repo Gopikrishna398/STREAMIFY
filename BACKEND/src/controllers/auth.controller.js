@@ -99,7 +99,10 @@ export async function login(req, res) {
       user.verificationOtpExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
       await user.save();
 
-      await sendVerificationEmail(user.email, otp);
+      // Send email in background (non-blocking) to prevent timeouts
+      sendVerificationEmail(user.email, otp).catch((err) => {
+        console.error("Background email sending error in login:", err);
+      });
 
       const userResponse = user.toObject();
       delete userResponse.password;
