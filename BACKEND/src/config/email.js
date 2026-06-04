@@ -16,6 +16,7 @@ const getTransporter = () => {
       user: user,
       pass: pass,
     },
+    family: 4, // Force IPv4 to prevent ENETUNREACH on IPv6-unsupported networks
   });
 };
 
