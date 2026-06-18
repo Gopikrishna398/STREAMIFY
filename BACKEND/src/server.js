@@ -10,6 +10,7 @@ import chatRoute from "./routes/chat.route.js"
 import dns from "dns";
 
 // Force IPv4 first to prevent ENETUNREACH errors on hosts without IPv6 support
+
 dns.setDefaultResultOrder("ipv4first");
 
 const app = express();

@@ -1,29 +1,40 @@
 /**
- * Email configuration using Resend HTTPS API (bypasses SMTP port blocking on Render/Railway)
+ * Email configuration using Brevo HTTPS API.
+ * This avoids SMTP port blocking on hosts like Railway.
  */
 
 export const sendVerificationEmail = async (toEmail, otp) => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  const senderName = process.env.BREVO_SENDER_NAME || "Streamify";
 
   // Fallback: If no API key is configured, log the OTP to the console
-  if (!apiKey) {
+  if (!apiKey || !senderEmail) {
     console.log("-----------------------------------------");
     console.log(`[STREAMIFY EMAIL SERVICE] OTP for ${toEmail}: ${otp}`);
-    console.log("To send real emails on Render/Railway, please configure RESEND_API_KEY.");
+    console.log("To send real emails on Railway, please configure BREVO_API_KEY and BREVO_SENDER_EMAIL.");
     console.log("-----------------------------------------");
     return { success: true, message: "Logged to console" };
   }
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "api-key": apiKey,
         "Content-Type": "application/json",
+        "Accept": "application/json",
       },
       body: JSON.stringify({
-        from: "Streamify <onboarding@resend.dev>", // Free default sender from Resend
-        to: toEmail,
+        sender: {
+          name: senderName,
+          email: senderEmail,
+        },
+        to: [
+          {
+            email: toEmail,
+          },
+        ],
         subject: "Verify Your Streamify Account",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -42,17 +53,17 @@ export const sendVerificationEmail = async (toEmail, otp) => {
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (response.ok) {
-      console.log(`Verification email sent via Resend API: ${data.id}`);
+      console.log(`Verification email sent via Brevo API: ${data.messageId || "accepted"}`);
       return { success: true };
     } else {
-      console.error("Resend API responded with an error:", data);
+      console.error("Brevo API responded with an error:", data);
       return { success: false, error: data };
     }
   } catch (error) {
-    console.error("Error sending verification email via Resend API:", error);
+    console.error("Error sending verification email via Brevo API:", error);
     return { success: false, error };
   }
 };

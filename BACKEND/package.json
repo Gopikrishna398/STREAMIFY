@@ -22,7 +22,6 @@
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
-    "nodemailer": "^8.0.10",
     "stream-chat": "^8.60.0",
     "zod": "^4.4.3"
   },
