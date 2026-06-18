@@ -36,7 +36,8 @@ export const sendVerificationEmail = async (toEmail, otp) => {
           },
         ],
         subject: "Verify Your Streamify Account",
-        html: `
+        textContent: `Your Streamify verification code is ${otp}. This code is valid for 15 minutes.`,
+        htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <h2 style="color: #6366f1; text-align: center;">Welcome to Streamify!</h2>
             <p style="font-size: 16px; color: #333333;">Thank you for registering. Please verify your email address by using the 6-digit One-Time Password (OTP) below:</p>
