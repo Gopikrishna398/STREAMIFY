@@ -4,11 +4,18 @@ import jwt from "jsonwebtoken";
 import { uploadProfileImage } from "../config/cloudinary.js";
 import { sendVerificationEmail } from "../config/email.js";
 
-const cookieOptions = {
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  httpOnly: true,
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  secure: process.env.NODE_ENV === "production",
+const getCookieOptions = (req, maxAge = 7 * 24 * 60 * 60 * 1000) => {
+  const isHttps =
+    req.secure ||
+    req.headers["x-forwarded-proto"] === "https" ||
+    process.env.NODE_ENV === "production";
+
+  return {
+    maxAge,
+    httpOnly: true,
+    sameSite: isHttps ? "none" : "lax",
+    secure: isHttps,
+  };
 };
 
 export async function signup(req, res) {
@@ -55,7 +62,7 @@ export async function signup(req, res) {
       expiresIn: "7d",
     });
 
-    res.cookie("jwt", token, cookieOptions);
+    res.cookie("jwt", token, getCookieOptions(req));
 
     const userResponse = newUser.toObject();
     delete userResponse.password;
@@ -90,7 +97,7 @@ export async function login(req, res) {
       expiresIn: "7d",
     });
 
-    res.cookie("jwt", token, cookieOptions);
+    res.cookie("jwt", token, getCookieOptions(req));
 
     // If not verified, trigger a new OTP code and inform frontend
     if (!user.isVerified) {
@@ -126,11 +133,7 @@ export async function login(req, res) {
 }
 
 export function logout(req, res) {
-  res.clearCookie("jwt", {
-    httpOnly: true,
-    sameSite: cookieOptions.sameSite,
-    secure: cookieOptions.secure,
-  });
+  res.clearCookie("jwt", getCookieOptions(req, 0));
 
   res.status(200).json({
     success: true,

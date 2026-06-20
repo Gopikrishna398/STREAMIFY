@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import useAuthUser from "../hooks/useAuthUser";
 import { BellIcon, LogOutIcon, MessageSquareIcon, PhoneCallIcon, ShipWheelIcon } from "lucide-react";
 import ThemeSelector from "./ThemeSelector";
 import useLogout from "../hooks/useLogout";
@@ -9,7 +8,6 @@ import IconBadge from "./IconBadge";
 import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
 
 const Navbar = () => {
-  const { authUser } = useAuthUser();
   const location = useLocation();
   const isChatPage = location.pathname?.startsWith("/chat");
   const unreadMessageCount = useUnreadMessageCount();

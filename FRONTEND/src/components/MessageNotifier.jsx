@@ -67,7 +67,7 @@ const MessageNotifier = () => {
 
           if (unreadMessagesCount > 0 || missedCallsCount > 0) {
             toast(
-              (t) => (
+              () => (
                 <div className="flex flex-col gap-1 text-left">
                   <span className="font-semibold text-primary">Welcome back!</span>
                   <span className="text-sm">

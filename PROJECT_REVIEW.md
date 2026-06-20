@@ -2,298 +2,271 @@
 
 ## Project Overview
 
-Streamify is a full-stack language exchange and communication platform. Users can sign up, log in, complete onboarding, discover other language learners, send friend requests, chat with friends, receive message notifications, and start video calls from conversations.
+Streamify is a full-stack language exchange and communication platform. Users can create an account, verify their email, complete onboarding, discover other language learners, send friend requests, chat with friends, receive notifications, manage their profile, upload a profile picture, and start video calls.
 
-The project is built with a MERN-style architecture:
+The project uses a MERN-style architecture:
 
-- Frontend: React, Vite, Tailwind CSS, DaisyUI, React Query, React Router
+- Frontend: React, Vite, Tailwind CSS, DaisyUI, React Router
 - Backend: Node.js, Express.js, MongoDB, Mongoose
 - Authentication: JWT stored in HTTP-only cookies
+- Validation and security: Zod, Helmet, Express Rate Limit, CORS
 - Realtime chat: Stream Chat
 - Video calls: Stream Video SDK
+- Media upload: Cloudinary
+- Email verification: Brevo API
 - State/query management: TanStack React Query and Zustand
 
-The core idea is strong for a final-year project because it is not just a CRUD app. It includes authentication, protected routes, onboarding, social features, realtime messaging, video calls, notifications, and external API integration.
+The project is stronger than a basic CRUD app because it combines authentication, protected routing, onboarding, social networking, realtime messaging, video calls, notifications, file upload, third-party API integration, and production-oriented middleware.
 
 ## Main Features
 
-### Authentication
+### Authentication and Email Verification
 
-Users can:
+Users can create an account, log in, log out, and stay authenticated with a JWT cookie. The cookie is HTTP-only, so frontend JavaScript cannot directly read the token.
 
-- Create an account
-- Log in
-- Log out
-- Stay authenticated using a JWT cookie
-- Access protected pages only after login
+After signup, the backend generates a 6-digit OTP that expires after 15 minutes. The OTP is sent by Brevo when email credentials are configured. For local development, the OTP can be logged to the backend console if Brevo is not configured.
 
-The backend stores JWT in an HTTP-only cookie, which is better than storing tokens in localStorage because JavaScript cannot directly read HTTP-only cookies.
+The protected frontend flow is:
+
+1. Unauthenticated users go to `/login`.
+2. Logged-in but unverified users go to `/verify-email`.
+3. Verified but not-onboarded users go to `/onboarding`.
+4. Fully ready users can access the main app.
 
 ### Onboarding
 
-After signup, users complete their profile by adding:
+After verification, users complete their profile by adding:
 
 - Full name
 - Bio
 - Native language
 - Learning language
 - Location
+- Gender
+- Optional profile picture
 
-Only onboarded users are shown in recommendations. This is a good product decision because incomplete profiles do not clutter the discovery experience.
+Only onboarded users appear in recommendations. This keeps discovery focused on profiles that are useful to other learners.
+
+### Profile Management
+
+Users can update profile information after onboarding. Profile pictures are uploaded to Cloudinary through the backend. The frontend sends image data, Cloudinary stores and optimizes the image, and MongoDB stores the final hosted image URL.
 
 ### User Discovery and Friends
 
-Users can:
-
-- View recommended language learners
-- Send friend requests
-- Accept incoming friend requests
-- See their current friends
-- Start conversations with friends
-
-This gives the app a social-network style workflow.
+Users can view recommended language learners, send friend requests, accept incoming requests, see outgoing requests, and view their current friends. When a request is accepted, both users are added to each other's `friends` list in MongoDB.
 
 ### Messaging
 
-The app uses Stream Chat for realtime messaging. Users can:
+Stream Chat powers realtime one-to-one messaging. The backend creates Stream users and generates Stream tokens. The frontend uses those tokens to connect to Stream securely.
 
-- Open one-to-one conversations
-- Send and receive messages
-- See recent conversations on the Messages page
-- Get an in-app notification when someone sends a message
+Users can open conversations, send and receive messages, view recent conversations, and receive in-app message notifications.
 
-The Messages page is important because it makes communication central instead of forcing users to always start from the friends list.
+### Video Calls and Call History
 
-### Video Calls
+Stream Video powers video calls. Users can start a call from a chat. The backend stores call records in MongoDB using a dedicated `Call` model.
 
-Users can start a video call from a conversation. The app sends a call link into the chat and opens the call page.
+Each call record stores:
 
-There is also a Call History page that extracts previous call links from messages and allows users to rejoin or return to the related chat.
+- Caller
+- Participants
+- Stream call ID
+- Stream channel ID
+- Status
+- Users who have seen the call
+- Created and updated timestamps
+
+The Calls page can show recent call history and missed call counts.
+
+### Notifications
+
+The app includes notification behavior for friend requests, messages, and missed calls. Friend request counts and missed call counts come from backend APIs. Message notification behavior is handled in the frontend with Stream events and UI feedback.
 
 ### Theme Support
 
-The app supports multiple themes using DaisyUI and Zustand. This is a nice UI enhancement, though it is not essential to the core business logic.
+The app supports DaisyUI themes. Zustand stores the selected theme, and the frontend applies it through the root `data-theme` attribute.
 
-## Project Structure
+## Backend Structure
 
-### Backend
-
-Important backend folders:
+- `src/index.js`
+  Loads `BACKEND/.env` and imports the server.
 
 - `src/server.js`
-  Starts the Express server, configures CORS, JSON parsing, cookies, routes, and database connection.
+  Configures Express, Helmet, rate limiting, CORS, JSON parsing, URL-encoded parsing, cookies, routes, MongoDB connection, and the HTTP listener.
 
 - `src/config/db.js`
-  Connects to MongoDB using Mongoose.
+  Connects the backend to MongoDB through Mongoose.
 
 - `src/config/stream.js`
-  Configures Stream Chat server SDK, creates Stream users, and generates Stream tokens.
+  Configures Stream Chat server SDK, creates or updates Stream users, and generates Stream user tokens.
+
+- `src/config/cloudinary.js`
+  Uploads profile images to Cloudinary and returns optimized image URLs.
+
+- `src/config/email.js`
+  Sends email verification OTPs through Brevo, with console logging as a development fallback.
 
 - `src/models/user.model.js`
-  Defines the User schema, password hashing, and password comparison.
+  Defines users, profile fields, email verification fields, friend references, password hashing, and password comparison.
 
 - `src/models/friendRequest.model.js`
-  Defines friend request data and status.
+  Defines friend requests between users and tracks request status.
+
+- `src/models/call.model.js`
+  Stores call history records for Stream video calls.
 
 - `src/controllers/auth.controller.js`
-  Handles signup, login, logout, and onboarding.
+  Handles signup, login, logout, email verification, OTP resend, and onboarding.
 
 - `src/controllers/user.controller.js`
-  Handles recommendations, friends, friend requests, and accepting requests.
+  Handles recommendations, friends, friend requests, notification count, profile updates, and user lookup.
 
 - `src/controllers/chat.controller.js`
-  Generates Stream Chat tokens for authenticated users.
+  Handles Stream token generation, call history, missed call count, call creation, and seen state.
 
 - `src/middleware/auth.middleware.js`
-  Protects private backend routes by verifying JWT cookies.
+  Protects private routes by reading and verifying the JWT cookie.
 
-### Frontend
+- `src/middleware/validate.middleware.js`
+  Validates request bodies with Zod before controller logic runs.
 
-Important frontend folders:
+- `src/validators`
+  Defines schemas for signup, login, onboarding, profile updates, and call creation.
+
+## Frontend Structure
 
 - `src/App.jsx`
-  Defines all app routes and protected route behavior.
+  Defines app routes and protected-route behavior.
 
 - `src/pages`
-  Contains the main pages: Home, Login, Signup, Onboarding, Chat, Call, Messages, Calls, Notifications.
+  Contains route-level screens such as Login, Signup, Verify Email, Onboarding, Home, Messages, Chat, Calls, Call, Notifications, and Profile.
 
 - `src/components`
-  Contains reusable UI pieces like Navbar, Sidebar, Layout, Avatar, Call Button, loaders, and notification helpers.
+  Contains reusable UI such as Navbar, Sidebar, Layout, Avatar, Friend Card, Call Button, Theme Selector, loaders, empty states, profile picture editor, and notification helpers.
 
 - `src/lib/api.js`
-  Contains frontend API functions.
+  Contains named functions for backend API calls.
 
 - `src/lib/axios.js`
-  Configures Axios with the backend base URL and cookie credentials.
+  Configures Axios base URL and cookie credentials.
 
 - `src/hooks`
-  Contains reusable auth/login/logout/signup hooks.
+  Contains reusable auth and request hooks.
 
 - `src/store/useThemeStore.js`
-  Stores the selected UI theme.
+  Stores the selected DaisyUI theme.
 
-## Is This Project Good Enough for a Final-Year Student?
+## API Summary
 
-Yes, this project is good enough as a final-year project, especially if you can explain it clearly.
+### Auth API
 
-It has more depth than a basic CRUD app because it includes:
+- `POST /api/auth/signup`: creates an account, sends OTP, and sets auth cookie.
+- `POST /api/auth/login`: authenticates user, sets auth cookie, and resends OTP if needed.
+- `POST /api/auth/logout`: clears auth cookie.
+- `POST /api/auth/onboarding`: saves profile details and marks user as onboarded.
+- `POST /api/auth/verify-email`: verifies the current user's OTP.
+- `POST /api/auth/resend-otp`: sends a new OTP.
+- `GET /api/auth/me`: returns the authenticated user.
 
-- Secure authentication flow
-- Protected frontend and backend routes
-- MongoDB data modeling
+### User API
+
+- `GET /api/users`: returns recommended onboarded users.
+- `GET /api/users/friends`: returns the current user's friends.
+- `POST /api/users/friend-request/:id`: sends a friend request.
+- `PUT /api/users/friend-request/:id/accept`: accepts a friend request.
+- `GET /api/users/friend-requests`: returns incoming and accepted requests.
+- `GET /api/users/notification-count`: returns pending request count.
+- `GET /api/users/outgoing-friend-requests`: returns outgoing pending requests.
+- `PATCH /api/users/profile`: updates profile details and profile picture.
+- `GET /api/users/:id`: returns one user by ID.
+
+### Chat and Call API
+
+- `GET /api/chat/token`: returns a Stream token.
+- `GET /api/chat/calls`: returns recent call history.
+- `GET /api/chat/calls/missed-count`: returns unseen call count.
+- `POST /api/chat/calls`: creates a call record.
+- `PUT /api/chat/calls/seen`: marks calls as seen.
+
+## Why This Is Good for a Final-Year Project
+
+Streamify is a strong final-year project because it demonstrates:
+
+- Secure authentication with JWT and HTTP-only cookies
+- Password hashing
+- Email verification
+- Protected backend routes
+- Protected frontend routes
+- MongoDB schema design
+- Request validation
 - Friend request workflow
 - Realtime chat integration
 - Video call integration
-- Message notifications
-- Recent messages page
-- Call history page
-- Responsive UI
-- External service integration with Stream
+- Profile image upload
+- Notification counts
+- Responsive frontend UI
+- External service integration
+- Deployment-aware configuration
 
-For placements, this project can help you stand out if you present it well. Recruiters and interviewers usually care about whether you understand:
+It gives you enough material to explain system design, frontend/backend communication, authentication, database relationships, realtime features, and production hardening.
 
-- Why you used each technology
-- How authentication works
-- How frontend and backend communicate
-- How protected routes work
-- How MongoDB schemas are designed
-- How realtime messaging is integrated
-- How errors are handled
-- How you would improve it for production
+## Current Strengths
 
-If you can confidently explain those things, this project is definitely useful for placement discussions.
+- Full-stack architecture with clear frontend and backend separation
+- Real-world social communication use case
+- JWT cookie authentication
+- Email verification flow
+- Onboarding flow
+- Friend request system
+- Realtime chat and video calls through Stream
+- Cloudinary profile uploads
+- Zod request validation
+- Security middleware with Helmet and rate limiting
+- Call history model
+- Theme support
 
-## Is It Placement-Ready?
+## Current Limitations
 
-It is close, but not fully polished yet.
+- Automated tests are not added yet.
+- Password reset is not implemented yet.
+- Browser push notifications are not implemented yet.
+- Call records can be expanded with duration, end time, and richer statuses.
+- Error responses are not fully standardized across all controllers.
+- Some production deployment values still need careful environment configuration.
+- Admin/moderation features such as block, report, and user management are not included.
 
-For a final-year demo, it is good. For a placement portfolio, it needs some cleanup, documentation, and production-hardening.
+## Suggestions to Improve Further
 
-Current strengths:
+### 1. Add Tests
 
-- Good feature set
-- Real-world communication use case
-- Full-stack architecture
-- Third-party SDK integration
-- Protected authentication
-- Modern React stack
+Add focused tests for authentication, route protection, friend requests, profile updates, and call records. Even a small test suite improves confidence and makes the project stronger for interviews.
 
-Current weaknesses:
+Useful tools:
 
-- Some naming inconsistencies exist, such as `signIn` being used for signup.
-- Error handling can be improved.
-- No automated backend tests or frontend tests.
-- No proper production deployment configuration.
-- No file upload support yet for profile pictures.
-- Stream call history is currently based on extracting call links from messages, not a dedicated call-history database model.
-- Environment variable management should be documented better.
-- The UI is functional, but it can be polished further for a professional product feel.
-
-## Suggestions to Make It Production Level
-
-### 1. Add Proper Profile Picture Upload
-
-Right now users use a default avatar. The next production-level step is to let users upload a profile picture from their device.
-
-Suggested approach:
-
-- Use Cloudinary, AWS S3, Firebase Storage, or Supabase Storage.
-- Add backend upload route.
-- Store only the uploaded image URL in MongoDB.
-- Add file size and file type validation.
-
-This would make the profile system feel complete.
-
-### 2. Improve Authentication
-
-Current JWT cookie auth is good, but production auth should include:
-
-- Strong JWT secret
-- Proper cookie domain settings
-- Secure cookies in production
-- Refresh token strategy
-- Password reset flow
-- Email verification
-- Rate limiting on login/signup
-
-These are common interview discussion points.
-
-### 3. Add Form Validation
-
-Frontend and backend should both validate inputs more strictly.
-
-Examples:
-
-- Full name minimum length
-- Bio maximum length
-- Location length
-- Valid language values only
-- Stronger password rules
-
-Use libraries like:
-
-- Zod
-- Joi
-- express-validator
-
-### 4. Add Dedicated Call History Model
-
-Currently call history is derived from chat messages containing call links. That works for a small project, but production systems should store call records separately.
-
-Recommended backend model:
-
-- caller
-- participants
-- channelId
-- callId
-- startedAt
-- endedAt
-- status: missed, completed, cancelled
-
-Then the frontend Call History page can load real call records from your backend.
-
-### 5. Add Unread Message Counts
-
-The Messages page should show unread counts beside each conversation.
-
-This would improve communication UX and make the app feel more like a real chat product.
-
-### 6. Add Better Notification System
-
-Current message notifications are in-app toasts. Production-level notifications could include:
-
-- Browser push notifications
-- Notification permission request
-- Sound toggle
-- Unread badge in sidebar
-- Notification history
-
-This would be impressive in a demo.
-
-### 7. Add Tests
-
-For placement and production quality, tests matter.
-
-Recommended tests:
-
-- Backend auth controller tests
-- Friend request controller tests
-- Protected route middleware tests
-- Frontend route rendering tests
-- API integration tests
-
-Tools:
-
-- Vitest
+- Vitest or Jest
 - React Testing Library
 - Supertest
-- Jest
 
-Even a small test suite can make the project look much more professional.
+### 2. Add Password Reset
 
-### 8. Improve Error Handling
+A production communication app should let users reset forgotten passwords through email. This can reuse the existing email provider pattern.
 
-Create a consistent backend error response format:
+### 3. Expand Call History
+
+The current call model is useful, but it can become richer by storing:
+
+- Start time
+- End time
+- Duration
+- Missed/completed/cancelled status
+- User who ended the call
+
+### 4. Improve Notification System
+
+Add browser push notifications, notification preferences, sound controls, and a notification history page.
+
+### 5. Improve Error Consistency
+
+Use one response shape for backend errors, such as:
 
 ```json
 {
@@ -303,143 +276,41 @@ Create a consistent backend error response format:
 }
 ```
 
-On the frontend, show errors inline instead of using too many popups.
+This makes frontend error handling easier.
 
-### 9. Add Loading and Empty States Everywhere
+### 6. Add Search and Filters
 
-The project already has some loaders and empty states. Make this consistent across:
+Useful additions include user search, language filters, message search, and call history filters.
 
-- Friends
-- Messages
-- Calls
-- Notifications
-- Chat
-- Onboarding
+### 7. Add Moderation Features
 
-This makes the app feel much more polished.
+For a real social app, useful moderation features include blocking users, reporting users, and admin review tools.
 
-### 10. Add Search and Filtering
-
-Useful additions:
-
-- Search users by name
-- Filter by native language
-- Filter by learning language
-- Search messages
-- Filter call history
-
-This would make Streamify more useful and demo-friendly.
-
-### 11. Add Deployment
-
-For placements, deployed projects are much stronger than local-only projects.
-
-Possible deployment:
-
-- Frontend: Vercel or Netlify
-- Backend: Render, Railway, or Fly.io
-- Database: MongoDB Atlas
-- Media: Cloudinary
-
-Also add:
-
-- Production `.env.example`
-- Deployment instructions
-- Live demo link
-
-### 12. Add API Documentation
-
-Create a simple API document with:
-
-- Route
-- Method
-- Auth required or not
-- Request body
-- Response body
-
-This helps during interviews and makes the project look organized.
-
-### 13. Clean Naming
-
-Rename signup-related code for clarity.
-
-Current naming:
-
-- `SignInPage` is actually signup/register page.
-- `signIn` API is actually signup.
-
-Recommended naming:
-
-- `SignupPage`
-- `signup`
-- `/auth/signup`
-
-This will reduce confusion when explaining the project.
-
-### 14. Add Role or Admin Features
-
-Optional but impressive:
-
-- Admin dashboard
-- Report user
-- Block user
-- Manage users
-- View platform stats
-
-This is not necessary, but it can make the project look more complete.
-
-### 15. Improve Security
-
-Production security checklist:
-
-- Use Helmet
-- Add CORS environment config
-- Rate limit auth routes
-- Sanitize input
-- Avoid leaking stack traces
-- Use strong password hashing
-- Validate MongoDB ObjectIds
-- Avoid returning sensitive fields
-
-## Suggested Final-Year Presentation Flow
-
-When presenting Streamify, explain it like this:
+## Suggested Presentation Flow
 
 1. Problem statement:
-   Language learners need a platform to find partners, chat, and practice through calls.
+   Language learners need a way to find partners, chat, and practice speaking.
 
 2. Solution:
-   Streamify connects language learners through profiles, friend requests, realtime chat, and video calls.
+   Streamify connects learners through profiles, friend requests, realtime chat, and video calls.
 
 3. Tech stack:
-   React frontend, Express backend, MongoDB database, Stream for chat/video.
+   React frontend, Express backend, MongoDB database, Stream for chat/video, Cloudinary for profile uploads, Brevo for emails.
 
 4. Key modules:
-   Authentication, onboarding, discovery, friends, messaging, video calls, notifications.
+   Authentication, verification, onboarding, discovery, friends, messaging, calls, notifications, profile management.
 
 5. Security:
-   JWT authentication, HTTP-only cookies, protected routes, password hashing.
+   HTTP-only JWT cookies, password hashing, protected routes, validation, Helmet, rate limiting, CORS.
 
 6. Challenges:
-   Integrating realtime chat/video, handling tokens, protected routing, managing auth state.
+   Integrating Stream, managing auth state, protecting routes, handling cookies across frontend/backend deployments, and connecting multiple external services.
 
 7. Future scope:
-   Profile uploads, push notifications, real call history database, deployment, tests.
+   Tests, password reset, push notifications, richer call records, search, moderation, and deployment polishing.
 
 ## Final Verdict
 
-Streamify is a strong final-year project idea and implementation.
+Streamify is a strong final-year and portfolio project. It goes beyond CRUD and shows practical full-stack development with authentication, database modeling, realtime communication, video calling, file upload, email verification, and external API integration.
 
-It is good enough to present for college and useful for placement interviews, especially because it goes beyond basic CRUD. It shows that you can build a real full-stack application with authentication, database design, realtime communication, and third-party service integration.
-
-To make it production-level, focus next on:
-
-- Profile image upload
-- Proper call history model
-- Unread message counts
-- Better error handling
-- Tests
-- Deployment
-- Cleaner naming and documentation
-
-If these improvements are added, Streamify can become a very solid portfolio project.
+For placement discussions, focus on explaining why each module exists, how data moves between frontend and backend, how authentication is protected, how Stream is integrated, and what improvements you would make before production.
